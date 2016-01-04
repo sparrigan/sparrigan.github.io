@@ -30,7 +30,7 @@ The first argument is the name of the class, the second argument is any base we 
 
 ## Dynamically creating classes
 
-This is all super useful in SQLAlchemy, because one of it's most useful features is that it can provide an Object Relational Mapper (ORM), wherein tables in an SQL database are 'represented' by Python classes. The idea is that you need only interact with methods and attributes of these classes and their instances, whilst SQLAlchemy takes care of querying the database with SQL behind the scenes.
+This is all super useful in SQLAlchemy, because one of its most useful features is that it can provide an Object Relational Mapper (ORM), wherein tables in an SQL database are 'represented' by Python classes. The idea is that you need only interact with methods and attributes of these classes and their instances, whilst SQLAlchemy takes care of querying the database with SQL behind the scenes.
 
 Normally, you'd therefore just create a class that SQLAlchemy can 'map' to a table in your database like so:
 

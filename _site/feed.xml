@@ -6,8 +6,8 @@
 </description>
     <link>http://nicholasharrigan.com/</link>
     <atom:link href="http://nicholasharrigan.com/feed.xml" rel="self" type="application/rss+xml"/>
-    <pubDate>Mon, 04 Jan 2016 22:37:43 +0000</pubDate>
-    <lastBuildDate>Mon, 04 Jan 2016 22:37:43 +0000</lastBuildDate>
+    <pubDate>Mon, 04 Jan 2016 22:41:45 +0000</pubDate>
+    <lastBuildDate>Mon, 04 Jan 2016 22:41:45 +0000</lastBuildDate>
     <generator>Jekyll v3.0.0</generator>
     
       <item>
@@ -32,7 +32,7 @@
 
 &lt;h2 id=&quot;dynamically-creating-classes&quot;&gt;Dynamically creating classes&lt;/h2&gt;
 
-&lt;p&gt;This is all super useful in SQLAlchemy, because one of it’s most useful features is that it can provide an Object Relational Mapper (ORM), wherein tables in an SQL database are ‘represented’ by Python classes. The idea is that you need only interact with methods and attributes of these classes and their instances, whilst SQLAlchemy takes care of querying the database with SQL behind the scenes.&lt;/p&gt;
+&lt;p&gt;This is all super useful in SQLAlchemy, because one of its most useful features is that it can provide an Object Relational Mapper (ORM), wherein tables in an SQL database are ‘represented’ by Python classes. The idea is that you need only interact with methods and attributes of these classes and their instances, whilst SQLAlchemy takes care of querying the database with SQL behind the scenes.&lt;/p&gt;
 
 &lt;p&gt;Normally, you’d therefore just create a class that SQLAlchemy can ‘map’ to a table in your database like so:&lt;/p&gt;
 
