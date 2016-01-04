@@ -1,0 +1,47 @@
+---
+layout: post
+title:  "SQLAlchemy intuition for building databases"
+date:   2015-12-31 11:29:14 +0000
+categories: SQL SQLA
+---
+
+<!-- Introduce SQLA and say about problem of premature optimization (give all names) -->
+
+When teaching physics, I always tried to impress on students the importance of developing intuition -  from 'feeling what 10 Newtons is like', to calculating the number of atoms in a pencil to see just how small they are (spoiler: they're very small). Getting a 'feeling' for the magnitude of things helps us make quick but reliable estimates where a full-blown calculation would be overkill.
+
+One place where intuition is worth its weight in gold is building SQL databases. It's well known that premature optimization can be [*"... the root of all evil"*][3], but nevertheless, a little intuition can help make a better quick-and-dirty best guess for which approach to try first.
+
+I've lately been using SQLAlchemy[^1] a fair bit with a large but simply structured database. I build the database from a CSV file (using the awesome Pandas Python library for munging). What little [normalization][2] was possible still left plenty of free parameters in how to both architect and actually create the database in SQLAlchemy. This seemed like a great opportunity to put together some notes on different approaches to actually creating a database using SQLAlchemy and compare performance. Todays testing is tomorrows intuition!
+
+
+# ORM, Session or Core?
+
+Although SQLAlchemy finds its greatest use when employed as a full-blown ORM, this is all built on top of a lower-level API called *declarative*, which allows more control over how your code accesses the database. Suppose we have created a table in the database using the ORM
+
+{% highlight python %}
+class MyTable(Base):
+	__tablename__ = "myTable"
+	myColumn = Column('myColumn', Integer, primary_key=True)
+Base.metadata.create_all(engine)
+{% endhighlight %}
+(note: under the hood SQLAlchemy has actually created a Table object and mapped it to our above class)
+
+[^1]: SQLAlchemy is an Object Relational Mapper (ORM) that (amongst other things) allows interaction with an SQL database through python objects. For a good discussion of why using an ORM like SQLAlchemy is worth the effort check out Daniel Weitzenfeld's awesome post on [Why Data Scientists should use an ORM][1].
+
+<!-- 1. Possible ways of using SQLA  -->
+
+# 'Flavors' of SQLA
+
+<!-- 2. Creating more tables versus more entries in single table (but mention that you should consider your data model first and foremost!) -->
+
+<!-- 3. Chunking - how to do it and what chunk size works best? -->
+
+
+[1]: http://danielweitzenfeld.github.io/passtheroc/blog/2014/10/12/datasci-sqlalchemy/
+[2]: https://en.wikipedia.org/wiki/Database_normalization
+[3]: http://c2.com/cgi/wiki?PrematureOptimization
+
+
+<!-- But nevertheless when you're faced with several options, its good to have a rough knowledge -->
+
+<!-- Will discuss three different 'options' you could consider... -->

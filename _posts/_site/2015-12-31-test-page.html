@@ -1,0 +1,28 @@
+<!-- Introduce SQLA and say about problem of premature optimization (give all names) -->
+
+<p>When teaching physics, I always tried to impress on students the importance of developing intuition,  from ‘feeling what 10 Newtons is like’, to calculating the number of atoms in a pencil to see just how small they are (spoiler: they’re very small). Getting a ‘feeling’ for the magnitude of things helps us make quick but reliable estimates where a full-blown calculation would be overkill.</p>
+
+<p>One place such intuition would certainly come in handy is architecting an SQL database. It’s well known that premature optimization can be <a href="http://c2.com/cgi/wiki?PrematureOptimization"><em>“… the root of all evil”</em></a>, but nevertheless, a little intuition can help make a better quick-and-dirty best guess for which approach to try first.</p>
+
+<p>I’ve lately been using SQLAlchemy<sup id="fnref:1"><a href="#fn:1" class="footnote">1</a></sup> a fair bit with a large but simply structured database, where I was building the database from an existing CSV file using the awesome Pandas Python library to first mung the data. What little <a href="https://en.wikipedia.org/wiki/Database_normalization">normalization</a> was possible still left plenty of free parameters in how to both architecting the database and actually create it with SQLAlchemy. This seemed like a great opportunity to put together some notes on different approaches to actually creating a database using SQLAlchemy and compare performance. Todays testing is tomorrows intuition!</p>
+
+<h1 id="orm-session-or-core">ORM, Session or Core?</h1>
+
+<!-- 1. Possible ways of using SQLA  -->
+
+<h1 id="flavors-of-sqla">‘Flavors’ of SQLA</h1>
+
+<!-- 2. Creating more tables versus more entries in single table (but mention that you should consider your data model first and foremost!) -->
+
+<!-- 3. Chunking - how to do it and what chunk size works best? -->
+
+<!-- But nevertheless when you're faced with several options, its good to have a rough knowledge -->
+
+<!-- Will discuss three different 'options' you could consider... -->
+<div class="footnotes">
+  <ol>
+    <li id="fn:1">
+      <p>SQLAlchemy is an Object Relational Mapper (ORM) that (amongst other things) allows interaction with an SQL database through python objects. For a good discussion of why using an ORM like SQLAlchemy is worth the effort check out Daniel Weitzenfeld’s awesome post on <a href="http://danielweitzenfeld.github.io/passtheroc/blog/2014/10/12/datasci-sqlalchemy/">Why Data Scientists should use an ORM</a>. <a href="#fnref:1" class="reversefootnote">&#8617;</a></p>
+    </li>
+  </ol>
+</div>
