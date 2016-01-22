@@ -1,14 +1,271 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>Ontic compression</title>
+    <title>The prior post</title>
     <description>Stuff with data. Data with stuff.
 </description>
     <link>http://nicholasharrigan.com/</link>
     <atom:link href="http://nicholasharrigan.com/feed.xml" rel="self" type="application/rss+xml"/>
-    <pubDate>Mon, 04 Jan 2016 22:41:45 +0000</pubDate>
-    <lastBuildDate>Mon, 04 Jan 2016 22:41:45 +0000</lastBuildDate>
+    <pubDate>Fri, 22 Jan 2016 00:25:24 +0000</pubDate>
+    <lastBuildDate>Fri, 22 Jan 2016 00:25:24 +0000</lastBuildDate>
     <generator>Jekyll v3.0.0</generator>
+    
+      <item>
+        <title>Consumer complaints 1: &lt;br&gt;Investigating categorical data</title>
+        <description>
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;pandas&lt;/span&gt; &lt;span class=&quot;kn&quot;&gt;as&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;pd&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;fname&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;&amp;lt;path&amp;gt;/cfpb_Consumer_Complaints.csv&quot;&lt;/span&gt;
+&lt;span class=&quot;c&quot;&gt;#Read CSV file. Specify datatypes of mixed columns.&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;cc_df&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;pd&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;read_csv&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;fname&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;index_col&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&#39;Date received&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;
+			&lt;span class=&quot;n&quot;&gt;dtype&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;4&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;object&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;5&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;object&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;6&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;object&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;9&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;object&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;})&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;We’ve also indexed the data by the date of each complaint (currently strings). Pandas has some really powerful tools for dealing with dates, and we can take advantage of them later on if we convert this index of dates from being strings to &lt;code&gt;datetime&lt;/code&gt; objects.	There’s actually a built-in function, &lt;code&gt;pd.to_datetime()&lt;/code&gt; for converting string representations of dates to &lt;code&gt;datetime&lt;/code&gt; objects. We &lt;em&gt;could&lt;/em&gt; consider mapping that to each date in our index, but interestingly I’ve found the following to be considerably (about 4x) faster:
+1. Use python’s &lt;code&gt;datetime.strptime()&lt;/code&gt; function with a list comprehension to produce a list of &lt;em&gt;python&lt;/em&gt; datetime objects
+2. Convert this list of python datetime objects to a pandas &lt;code&gt;DatetimeIndex&lt;/code&gt; with the &lt;code&gt;DatetimeIndex()&lt;/code&gt; method.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;span class=&quot;kn&quot;&gt;from&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;datetime&lt;/span&gt; &lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;datetime&lt;/span&gt;
+&lt;span class=&quot;c&quot;&gt;# Create list of python datetime objects from date strings in our DF index&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;dt_objs&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;datetime&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;strptime&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&#39;&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;%&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;m/&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;%&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;d/&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;%&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;Y&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;cc_df&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;index&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
+&lt;span class=&quot;c&quot;&gt;# Create pandas DatetimeIndex from this list and assign it to our DF index&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;cc_df&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;index&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;pd&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;DatetimeIndex&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;dt_objs&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;Although this seems a bit circuitous, it does the job, and leaves our dataframe with a very useful pandas &lt;em&gt;DatetimeIndex&lt;/em&gt;. Note that in using &lt;code&gt;datetime.strptime()&lt;/code&gt; we pass it a formatting parameter telling it how our date strings are arranged. Having been brought up on the UK ‘backwards’ convention of (DD/MM/YY) I think this is a great idea.&lt;/p&gt;
+</description>
+        <pubDate>Sat, 16 Jan 2016 11:29:14 +0000</pubDate>
+        <link>http://nicholasharrigan.com/datascience/eda/python/matplotlib/2016/01/16/consumer-complaints-2-dates.html</link>
+        <guid isPermaLink="true">http://nicholasharrigan.com/datascience/eda/python/matplotlib/2016/01/16/consumer-complaints-2-dates.html</guid>
+        
+        
+        <category>DataScience</category>
+        
+        <category>EDA</category>
+        
+        <category>Python</category>
+        
+        <category>Matplotlib</category>
+        
+      </item>
+    
+      <item>
+        <title>Consumer complaints 1:&lt;br&gt; Matrix plots and categorical data</title>
+        <description>&lt;p&gt;A little while back, the US Consumer Financial Protection Bureau (CFPB) opened up &lt;a href=&quot;http://www.consumerfinance.gov/complaintdatabase/&quot;&gt;their excellent database of consumer complaints&lt;/a&gt;, containing date-stamped complaints made by US citizens about various financial products. Turns out that people love to moan - especially about money - and the dataset contains hundreds of thousands of entries spanning the past five years. Each entry has a wealth of information, ranging from the financial product under complaint to the location of complainer, and how the complaint was submitted. Over the next few posts I’ll use the CFPB data to discuss a few different techniques and tools that I think are noteworthy.&lt;/p&gt;
+
+&lt;p&gt;One thing that immediately stands out about the consumer complaints data is that the majority of the raw data is &lt;em&gt;categorical&lt;/em&gt; - having no intrinsic ordering. In this post I’ll focus on how to get a quick and dirty overview of the dataset using matrix plots - which are well suited to initial explorations of categorical data. I’ll be using python, along with the holy trinity (the &lt;a href=&quot;http://www.numpy.org/&quot;&gt;NumPy&lt;/a&gt;, &lt;a href=&quot;http://pandas.pydata.org/&quot;&gt;pandas&lt;/a&gt; and &lt;a href=&quot;http://matplotlib.org/&quot;&gt;matplotlib&lt;/a&gt; libraries). Relevant excerpts of code are given below inline, but everything is collected together in a single IPython notebook &lt;a href=&quot;TODO: LINK TO IPYTHON NOTEBOOK&quot;&gt;here&lt;/a&gt;.&lt;/p&gt;
+
+&lt;h2 id=&quot;importing-the-data&quot;&gt;Importing the data&lt;/h2&gt;
+
+&lt;p&gt;At the time I acquired it, CFPB provided the data in a singe csv file, so the convenient pandas &lt;code&gt;read_csv&lt;/code&gt; method can be used to import this directly into a dataframe. When importing csv files, pandas can very occasionally struggle (or at least take a while) identifying the datatypes of columns. We can use the &lt;code&gt;dtype&lt;/code&gt; parameters of &lt;code&gt;read_csv&lt;/code&gt; to help pandas out with typing of these columns.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;pandas&lt;/span&gt; &lt;span class=&quot;kn&quot;&gt;as&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;pd&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;fname&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;&amp;lt;path&amp;gt;/cfpb_Consumer_Complaints.csv&quot;&lt;/span&gt;
+&lt;span class=&quot;c&quot;&gt;#Read CSV file. Specify datatypes of mixed columns.&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;cc_df&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;pd&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;read_csv&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;fname&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;index_col&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&#39;Date received&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;
+			&lt;span class=&quot;n&quot;&gt;dtype&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;4&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;object&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;5&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;object&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;6&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;object&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;9&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;object&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;})&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;And hark! A dataframe is born:&lt;/p&gt;
+
+&lt;div&gt;
+&lt;table cellpadding=&quot;2&quot; border=&quot;1&quot; class=&quot;dataframe&quot; style=&quot;border-collapse: collapse; font-size: 10pt; text-align: center;&quot;&gt;
+  &lt;thead&gt;
+    &lt;tr&gt;
+      &lt;th&gt;&lt;/th&gt;
+      &lt;th&gt;Product&lt;/th&gt;
+      &lt;th&gt;Sub-product&lt;/th&gt;
+      &lt;th&gt;Issue&lt;/th&gt;
+      &lt;th&gt;Sub-issue&lt;/th&gt;
+      &lt;th&gt;Consumer complaint narrative&lt;/th&gt;
+      &lt;th&gt;Company public response&lt;/th&gt;
+      &lt;th&gt;Company&lt;/th&gt;
+      &lt;th&gt;State&lt;/th&gt;
+      &lt;th&gt;Submitted via&lt;/th&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;Date received&lt;/th&gt;
+      &lt;th&gt;&lt;/th&gt;
+      &lt;th&gt;&lt;/th&gt;
+      &lt;th&gt;&lt;/th&gt;
+      &lt;th&gt;&lt;/th&gt;
+      &lt;th&gt;&lt;/th&gt;
+      &lt;th&gt;&lt;/th&gt;
+      &lt;th&gt;&lt;/th&gt;
+      &lt;th&gt;&lt;/th&gt;
+      &lt;th&gt;&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;th&gt;07/13/2015&lt;/th&gt;
+      &lt;td&gt;Student loan&lt;/td&gt;
+      &lt;td&gt;Non-federal student loan&lt;/td&gt;
+      &lt;td&gt;Can&#39;t repay my loan&lt;/td&gt;
+      &lt;td&gt;NaN&lt;/td&gt;
+      &lt;td&gt;NaN&lt;/td&gt;
+      &lt;td&gt;NaN&lt;/td&gt;
+      &lt;td&gt;Transworld Systems Inc.&lt;/td&gt;
+      &lt;td&gt;PA&lt;/td&gt;
+      &lt;td&gt;Web&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;07/13/2015&lt;/th&gt;
+      &lt;td&gt;Debt collection&lt;/td&gt;
+      &lt;td&gt;NaN&lt;/td&gt;
+      &lt;td&gt;Cont&#39;d attempts collect debt not owed&lt;/td&gt;
+      &lt;td&gt;Debt is not mine&lt;/td&gt;
+      &lt;td&gt;NaN&lt;/td&gt;
+      &lt;td&gt;NaN&lt;/td&gt;
+      &lt;td&gt;Transworld Systems Inc.&lt;/td&gt;
+      &lt;td&gt;NY&lt;/td&gt;
+      &lt;td&gt;Web&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;07/13/2015&lt;/th&gt;
+      &lt;td&gt;Debt collection&lt;/td&gt;
+      &lt;td&gt;Credit card&lt;/td&gt;
+      &lt;td&gt;Taking/threatening an illegal action&lt;/td&gt;
+      &lt;td&gt;Sued w/o proper notification of suit&lt;/td&gt;
+      &lt;td&gt;NaN&lt;/td&gt;
+      &lt;td&gt;NaN&lt;/td&gt;
+      &lt;td&gt;Transworld Systems Inc.&lt;/td&gt;
+      &lt;td&gt;KY&lt;/td&gt;
+      &lt;td&gt;Web&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+&lt;/div&gt;
+
+&lt;p&gt;&lt;br /&gt;&lt;/p&gt;
+
+&lt;p&gt;Of course it’s actually a bit bigger than what I’ve shown here - about &lt;script type=&quot;math/tex&quot;&gt;200,000&lt;/script&gt; times bigger to be precise - but from this small snippet the categorical nature of most of the columns is still clear. A great tool for exploring relationships between the other &lt;script type=&quot;math/tex&quot;&gt;418,522&lt;/script&gt; rows and several columns we’re missing is a &lt;a href=&quot;http://www.r-bloggers.com/scatterplot-matrices/&quot;&gt;scatterplot matrix&lt;/a&gt;. But unfortunately scatterplots are only really suited to quantitative data. What we could really use here is the tongue-twisting and much coveted &lt;em&gt;matrix-plot matrix&lt;/em&gt;.&lt;/p&gt;
+
+&lt;h2 id=&quot;matrix-plot-matrix&quot;&gt;Matrix-plot matrix&lt;/h2&gt;
+
+&lt;p&gt;&lt;img style=&quot;float: right; padding-left: 15px;&quot; src=&quot;http://www.nicharrigan.com/github_images/22ident.png&quot; /&gt;
+A useful alternative option to scatterplots in purely categorical cases is the &lt;em&gt;matrixplot&lt;/em&gt;. Doing exactly what they say on the tin - matrix-plots represent the magnitudes of values from a matrix (or array if you’re more of a computer scientist) by points of color in a visual grid. For example, the image to the right is a matrix-plot of a &lt;script type=&quot;math/tex&quot;&gt;2\times{2}&lt;/script&gt; identity matrix. Matrix-plots can be generated in matplotlib through &lt;code&gt;pylab.matshow&lt;/code&gt;. I’ve used these a lot before for visualizing some &lt;a href=&quot;http://arxiv.org/abs/0709.1149&quot;&gt;pretty weird (but pretty pretty) matrices&lt;/a&gt; tied to the linear algebra of quantum mechanics -  but they work just as well in less esoteric settings. Here we can use them to visualize the number of coincident complaints that occur between categories from any two of our dataframe columns. In fact, using matplotlib’s sub-plots tools, we can even put together a matrix-plot equivalent of a scatterplot matrix - a &lt;em&gt;‘matrix-plot matrix’&lt;/em&gt; if you will.&lt;/p&gt;
+
+&lt;p&gt;Here’s what we get if we produce a ‘matrix-plot matrix’ for nine of the most interesting columns of the CFPB consumer complaints dataframe (code available &lt;a href=&quot;https://gist.github.com/sparrigan/fd8d94c4921fb6017182&quot;&gt;here&lt;/a&gt;):&lt;/p&gt;
+
+&lt;div style=&quot;text-align:center&quot;&gt;&lt;img src=&quot;http://www.nicharrigan.com/github_images/matrixplotmatrix.png&quot; /&gt;&lt;/div&gt;
+
+&lt;p&gt;&lt;br /&gt;&lt;/p&gt;
+
+&lt;p&gt;As expected, the plot matrix is symmetric with diagonalized blocks along its main diagonal. Note that:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;
+    &lt;p&gt;There are no category labels within each column (if there were it’d be more word-cloud than matrix-plot!). The purpose of the plot is to help us see patterns, and guide us on which columns to investigate further with individual labelled plots.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;There is no colorbar (key).  The darker the color, the higher the number of complaints, but the exact mapping is (linearly) normalized for each plot according to it’s own max/min values - so there is no ‘one’ colorbar key for all the plots.&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Its also important to point out that some of the dataframe columns have relatively large number of categories (for example, there are 96 different categories of &lt;strong&gt;Issue&lt;/strong&gt;). To make the above plot feasible, only the top ten categories for each column were used. Selecting the top ten categories for a column only takes a couple of lines with pandas&lt;sup id=&quot;fnref:foot1&quot;&gt;&lt;a href=&quot;#fn:foot1&quot; class=&quot;footnote&quot;&gt;1&lt;/a&gt;&lt;/sup&gt;:&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;span class=&quot;c&quot;&gt;# Don&#39;t consider nan/null entries&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;not_null&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;dataframe&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;column&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;][&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;dataframe&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;column&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;notnull&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()]&lt;/span&gt;
+&lt;span class=&quot;c&quot;&gt;# Top ten for column&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;top_ten&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;not_null&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;value_counts&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()[:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;10&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;index&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;h2 id=&quot;logarithmic-colormaps&quot;&gt;Logarithmic Colormaps&lt;/h2&gt;
+
+&lt;p&gt;Several of the subplots look as though they might contain some interesting features. Let’s take a more detailed look at &lt;strong&gt;Company&lt;/strong&gt; versus &lt;strong&gt;Product&lt;/strong&gt;:&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;span class=&quot;n&quot;&gt;plt&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;matshow&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;data&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;cmap&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;cm&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;gray_r&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;&lt;img src=&quot;http://www.nicharrigan.com/github_images/comp_prod_lin.png&quot; alt=&quot;Company versus product - Linear Colormap&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;This shows the number of complaints about a given company regarding a given financial product. There’s a couple of problems with this matrix-plot. First - and most obviously - a lot of the detail seems ‘washed out’. This problem stems from the colormap we’re using. To be more precise, a &lt;a href=&quot;http://matplotlib.org/users/colormaps.html&quot;&gt;colormap&lt;/a&gt; is a rule for mapping values (in this case number of complaints) to a color that we will display. Here we are using a (reversed grayscale) &lt;em&gt;linear&lt;/em&gt; map. But if we plot a quick histogram of the orders of magnitude that appear in the range of complaints in our company versus product matrix-plot, we can see the problem:&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;span class=&quot;n&quot;&gt;log_data&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;np&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;log10&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;data&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;plt&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;hist&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;log_data&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;bins&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;int&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;sqrt&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;len&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;log_data&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))),&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;normed&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;True&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;color&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;Burlywood&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;linewidth&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;&lt;img src=&quot;http://www.nicharrigan.com/github_images/data_hist.png&quot; alt=&quot;Histogram of magnitudes&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Clearly there’s a large variance in the orders of magnitude contained within our data, with a skew towards lower values. So a linear scale isn’t the best choice for our colormap - being bound to ‘wash-out’ detail from one end of the data. Instead, we’re better off using a logarithmically scaled colormap, where changes in the &lt;em&gt;order of magnitude&lt;/em&gt; of our data are mapped to changes along our colormap. With &lt;code&gt;pylab.matshow&lt;/code&gt; this is easy enough to achieve by setting the parameter &lt;code&gt;norm=Lognorm()&lt;/code&gt;. This gives us the following, much more readable matrix-plot (note the colorbar key below the figure is now logarithmic):&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;span class=&quot;kn&quot;&gt;from&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;matplotlib.colors&lt;/span&gt; &lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;LogNorm&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;plt&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;matshow&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;data_array&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;cmap&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;cm&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;gray_r&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;norm&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;LogNorm&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;())&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;&lt;img src=&quot;http://www.nicharrigan.com/github_images/comp_prod_log.png&quot; alt=&quot;Company versus product- Log Colormap&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Although we can now visualize the data more easily, there’s still a subtler problem. Ideally we’d like to be able to look at this matrix-plot and make fair comparisons between complaints made to the different companies (regarding various products). But the problem is that as well as our colormap, &lt;em&gt;the data itself&lt;/em&gt; needs to be normalized. At the very least we should take into account the number of customers each company has (to give a ‘per-capita’ number of complaints), and also consider the fraction of their business that is involved with any given product.&lt;/p&gt;
+
+&lt;p&gt;Estimating the customer-base of a company is an interesting (but hefty) data project in itself, so lets instead take a look at another promising sub-plot from our matrix-plot matrix - &lt;strong&gt;State&lt;/strong&gt; versus &lt;strong&gt;Product&lt;/strong&gt;:&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;span class=&quot;n&quot;&gt;plt&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;matshow&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;state_data_array&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;cmap&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;cm&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;gray_r&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;norm&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;LogNorm&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;())&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;&lt;img src=&quot;http://www.nicharrigan.com/github_images/state_prod_log_gray.png&quot; alt=&quot;State versus product - Normalized log colormap&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;This plot uses a log-scaled colormap, &lt;em&gt;and&lt;/em&gt; the underlying data has been normalized. In this case, since we’d like to fairly compare complaints from different states, we’ve normalized data from each state by the state population - which was scraped from wikipedia&lt;sup id=&quot;fnref:foot2&quot;&gt;&lt;a href=&quot;#fn:foot2&quot; class=&quot;footnote&quot;&gt;2&lt;/a&gt;&lt;/sup&gt; using the python library &lt;a href=&quot;http://www.crummy.com/software/BeautifulSoup/&quot;&gt;beautifulSoup&lt;/a&gt; (scraper code &lt;a href=&quot;https://gist.github.com/sparrigan/de6301c7ac4ddf83e346#file-wiki_state_scraper-py&quot;&gt;here&lt;/a&gt;). This gives us ‘per-capita’ complaints for each product.&lt;/p&gt;
+
+&lt;p&gt;Clearly mortgages are the subject of most complaints in almost every state, whilst the residents of D.C are pretty vocal across the board. Also of note is that there are zero complaints regarding payday loans in North Dakota, whilst there are a significant number of complaints in D.C and Georgia. In all three states payday loans are &lt;a href=&quot;http://www.paydayloaninfo.org/state-information&quot;&gt;effectively illegal&lt;/a&gt;. It could be interesting to try and tease out whether these differences can be attributed to state-by-state approaches to the status of payday loans.&lt;/p&gt;
+
+&lt;h2 id=&quot;choosing-a-colormap&quot;&gt;Choosing a colormap&lt;/h2&gt;
+
+&lt;p&gt;So far we’ve stuck with using a grayscale colormap - albeit one with a logarithmic scale (in fact we’ve used &lt;code&gt;gray_r&lt;/code&gt; - &lt;em&gt;reversed&lt;/em&gt; grayscale). There’s a lot to be said for grayscale. Most importantly, it’s a &lt;em&gt;sequential&lt;/em&gt; scale, meaning that the perceived luminosity varies monotonically throughout the scale. This helps prevent &lt;a href=&quot;https://mycarta.wordpress.com/2012/10/06/the-rainbow-is-deadlong-live-the-rainbow-part-3/&quot;&gt;luminosity artifacts&lt;/a&gt; in our matrix plots - where regions might stand out purely because of the nature of the colormap rather than because of legitimate changes in the data.&lt;/p&gt;
+
+&lt;p&gt;But nevertheless, lets try and get a bit more color in our lives. The relationship between the human perception of ‘lightness’ and coordinates in colorspace is a fascinating, complex, and messy subject&lt;sup id=&quot;fnref:foot3&quot;&gt;&lt;a href=&quot;#fn:foot3&quot; class=&quot;footnote&quot;&gt;3&lt;/a&gt;&lt;/sup&gt;, but the &lt;a href=&quot;http://matplotlib.org/users/colormaps.html&quot;&gt;matplotlib documentation&lt;/a&gt; offers a great breakdown of different colormap schemes and how their luminosity varies.&lt;/p&gt;
+
+&lt;p&gt;There are legitimate reasons to want something with a bit more pizazz. Although &lt;code&gt;gray_r&lt;/code&gt; does a great job, it isn’t a &lt;em&gt;uniform&lt;/em&gt; colormap - meaning that equal changes in the data do not always map to equal changes in perceived lightness at different points along the &lt;code&gt;gray_r&lt;/code&gt; colormap. But if we wander out of the shadows and into the rainbow then we can find colormaps that are both sequential &lt;em&gt;and&lt;/em&gt; uniform. But take care! They’re not the norm - in fact the default colormap used by matlab, and all but the most recent versions of matplotlib - called &lt;code&gt;jet&lt;/code&gt; - isn’t even &lt;em&gt;sequential&lt;/em&gt;, let alone uniform. You don’t have to spend long on data-viz blogs before you encounter some pretty full on &lt;code&gt;jet&lt;/code&gt;-hate.&lt;/p&gt;
+
+&lt;p&gt;Fortunately though, matplotlib (v1.5+) does include some colormaps that are both sequential and uniform. Namely - &lt;code&gt;viridis&lt;/code&gt;, &lt;code&gt;inferno&lt;/code&gt;, &lt;code&gt;plasma&lt;/code&gt; and &lt;code&gt;magma&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;So let’s use a logarithmic scale and the &lt;code&gt;magma&lt;/code&gt; colormap to inspect the matrix-plot between &lt;strong&gt;State&lt;/strong&gt; and &lt;strong&gt;Submitted via&lt;/strong&gt; (how the complaint was registered):&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;span class=&quot;n&quot;&gt;plt&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;matshow&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;data&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;cmap&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;magma&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;norm&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;LogNorm&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;())&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;&lt;img src=&quot;http://www.nicharrigan.com/github_images/state_submit_magma_log.png&quot; alt=&quot;State versus product - Normalized log colormap&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Notice that along the bottom row (the &lt;strong&gt;Email&lt;/strong&gt; category) there are some blank spaces. Looking at the scale for the magma colormap, you might think that these must correspond to relatively high values - but in fact, looking up the relevant dataframe entries, we find that they’re zero. This is a potential problem with using a logarithmic scale: &lt;script type=&quot;math/tex&quot;&gt;\log_b(0)&lt;/script&gt; is undefined for any base, &lt;script type=&quot;math/tex&quot;&gt;b&lt;/script&gt;. In fact, this problem was also present in the plots we created using the  &lt;code&gt;gray_r&lt;/code&gt; colormap - we just didn’t notice it, since &lt;code&gt;gray_r&lt;/code&gt; &lt;em&gt;would&lt;/em&gt; have also associated zero with white. To get around this, we can replace the &lt;code&gt;LogNorm()&lt;/code&gt; scale with &lt;code&gt;SymLogNorm()&lt;/code&gt; (Symmetric LogNorm - &lt;a href=&quot;http://matplotlib.org/api/colors_api.html#matplotlib.colors.SymLogNorm&quot;&gt;doc&lt;/a&gt;). &lt;code&gt;SymLogNorm&lt;/code&gt; is essentially a piecewise function that is linear within some region about the origin and logarithmic otherwise. We pass &lt;code&gt;SymLogNorm()&lt;/code&gt; an argument for our ‘threshold’ - how close a point needs to be to the origin to be mapped linearly, rather than logarithmically. Choosing the value of this threshold requires us to think a little about how our data is distributed. A good threshold choice for the &lt;strong&gt;State&lt;/strong&gt; vs &lt;strong&gt;Submission Type&lt;/strong&gt; matrix-plot is &lt;script type=&quot;math/tex&quot;&gt;10^{-6}&lt;/script&gt;, which gives us the following:&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;span class=&quot;n&quot;&gt;plt&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;matshow&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;state_data_array&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;cmap&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;magma&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;norm&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;SymLogNorm&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;10&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;**&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;6&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)))&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;&lt;img src=&quot;http://www.nicharrigan.com/github_images/state_submit_magma_symlog.png&quot; alt=&quot;State versus submission type - SymLogNorm&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;One thing you’ll notice if you try to reproduce the above plot is that the colormap tick-marks go a bit haywire. Unfortunately &lt;code&gt;SymLogNorm()&lt;/code&gt; seems to break the default tick-mark placement, and you’ll need to correct it yourself with something like this:&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;span class=&quot;n&quot;&gt;tick_locations&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;([&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;10&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;**&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;xrange&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;minlog&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;maxlog&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)]);&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;cbar&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;plt&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;colorbar&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;im&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ticks&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;tick_locations&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;orientation&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&#39;horizontal&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; \
+			&lt;span class=&quot;n&quot;&gt;pad&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;mf&quot;&gt;0.1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;shrink&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;mf&quot;&gt;0.3&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;cbar&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ax&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;set_xticklabels&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;([&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&#39;$0$&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; \
+			&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&#39;$10^{&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;%&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;r}$&#39;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;%&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;x&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;xrange&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;minlog&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;maxlog&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)]);&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;Bingo! Data-inspection-perfection (well, imporvement at least). And straight away some interesting points stand out in our colorful new matrix-plot. For example, New Hampshire seems to be quite keen on complaining through referals. Whilst Michigan and Delaware are pretty retro with all that faxing.&lt;/p&gt;
+
+&lt;h2 id=&quot;next-time&quot;&gt;Next time&lt;/h2&gt;
+
+&lt;p&gt;I’ve found matrix-plots to be great tools for getting a quick overview of the data and either showing trends, or just suggesting where it might be fruitful to look to find them. But of course ultimately we’re really interested in using statistics to verify, refute or utilise more quantitative relationships.&lt;/p&gt;
+
+&lt;p&gt;In the next blog post, I’ll continue using the CFPB dataset to look at how registered complaints have varied over time, leveraging some of the power of the pandas &lt;code&gt;datetime&lt;/code&gt; object and more matplotlib goodness.&lt;/p&gt;
+
+&lt;div class=&quot;footnotes&quot;&gt;
+  &lt;ol&gt;
+    &lt;li id=&quot;fn:foot1&quot;&gt;
+      &lt;p&gt;Our selecting of the top ten also explains why many of the subplots appear to have ‘smooth gradients’ within our grayscale colormap. This is a little unexpected, since the categories for each column are unordered - so we wouldn’t expect any correlation between number of complaints and the proximity of categories on the plot. However, the pandas &lt;code&gt;value_counts()&lt;/code&gt; method returns categories sorted in order of number of counts (i.e. complaints). One could argue that it would be a good idea to randomize this ordering to prevent apparent trends where none exist, but with a little caution, this ordering can be useful to aid comparing the spread of values from different categories. &lt;a href=&quot;#fnref:foot1&quot; class=&quot;reversefootnote&quot;&gt;&amp;#8617;&lt;/a&gt;&lt;/p&gt;
+    &lt;/li&gt;
+    &lt;li id=&quot;fn:foot2&quot;&gt;
+      &lt;p&gt;Wikipedia’s &lt;code&gt;robots.txt&lt;/code&gt; states &lt;em&gt;“Friendly, low-speed bots are welcome viewing article pages, but not dynamically-generated pages please.”&lt;/em&gt;. My bot was not only friendly, it was polite and well mannered (offered to take Wikipedia out for a steak dinner). &lt;a href=&quot;#fnref:foot2&quot; class=&quot;reversefootnote&quot;&gt;&amp;#8617;&lt;/a&gt;&lt;/p&gt;
+    &lt;/li&gt;
+    &lt;li id=&quot;fn:foot3&quot;&gt;
+      &lt;p&gt;Human vision itself is just insanely and amazingly interesting - even modulo neural networks. One of the best books I’ve ever read is &lt;a href=&quot;http://www.amazon.co.uk/First-Steps-Seeing-R-W-Rodieck/dp/0878937579&quot;&gt;Rodieck’s “The First Steps in Seeing”&lt;/a&gt;, which I fervently recommend to anyone remotely interested in how things work, computing, or just being amazed. &lt;a href=&quot;#fnref:foot3&quot; class=&quot;reversefootnote&quot;&gt;&amp;#8617;&lt;/a&gt;&lt;/p&gt;
+    &lt;/li&gt;
+  &lt;/ol&gt;
+&lt;/div&gt;
+</description>
+        <pubDate>Sat, 16 Jan 2016 11:29:14 +0000</pubDate>
+        <link>http://nicholasharrigan.com/datascience/eda/python/matplotlib/2016/01/16/consumer-complaints1.html</link>
+        <guid isPermaLink="true">http://nicholasharrigan.com/datascience/eda/python/matplotlib/2016/01/16/consumer-complaints1.html</guid>
+        
+        
+        <category>DataScience</category>
+        
+        <category>EDA</category>
+        
+        <category>Python</category>
+        
+        <category>Matplotlib</category>
+        
+      </item>
     
       <item>
         <title>Dynamic schema in SQLAlchemy</title>
@@ -119,6 +376,92 @@
         <category>SQL</category>
         
         <category>SQLA</category>
+        
+      </item>
+    
+      <item>
+        <title>SQLAlchemy intuition for building databases</title>
+        <description>&lt;!-- Introduce SQLA and say about problem of premature optimization (give all names) --&gt;
+
+&lt;p&gt;When teaching physics, I always tried to impress on students the importance of developing intuition -  from ‘feeling what 10 Newtons is like’, to calculating the number of atoms in a pencil to see just how small they are (spoiler: they’re very small). Getting a ‘feeling’ for the magnitude of things helps us make quick but reliable estimates where a full-blown calculation would be overkill.&lt;/p&gt;
+
+&lt;p&gt;One place where intuition is worth its weight in gold is building SQL databases. It’s well known that premature optimization can be &lt;a href=&quot;http://c2.com/cgi/wiki?PrematureOptimization&quot;&gt;&lt;em&gt;“… the root of all evil”&lt;/em&gt;&lt;/a&gt;, but nevertheless, a little intuition can help make a better quick-and-dirty best guess for which approach to try first.&lt;/p&gt;
+
+&lt;p&gt;I’ve lately been using SQLAlchemy&lt;sup id=&quot;fnref:1&quot;&gt;&lt;a href=&quot;#fn:1&quot; class=&quot;footnote&quot;&gt;1&lt;/a&gt;&lt;/sup&gt; a fair bit with a large but simply structured database. I build the database from a CSV file (using the awesome Pandas Python library for munging). What little &lt;a href=&quot;https://en.wikipedia.org/wiki/Database_normalization&quot;&gt;normalization&lt;/a&gt; was possible still left plenty of free parameters in how to both architect and actually create the database in SQLAlchemy. This seemed like a great opportunity to put together some notes on different approaches to actually creating a database using SQLAlchemy and compare performance. Todays testing is tomorrows intuition!&lt;/p&gt;
+
+&lt;h1 id=&quot;orm-session-or-core&quot;&gt;ORM, Session or Core?&lt;/h1&gt;
+
+&lt;p&gt;Although SQLAlchemy finds its greatest use when employed as a full-blown ORM, this is all built on top of a lower-level API called &lt;em&gt;declarative&lt;/em&gt;, which allows more control over how your code accesses the database. Suppose we have created a table in the database using the ORM&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;span class=&quot;k&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;MyTable&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Base&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+	&lt;span class=&quot;n&quot;&gt;__tablename__&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;myTable&quot;&lt;/span&gt;
+	&lt;span class=&quot;n&quot;&gt;myColumn&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Column&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&#39;myColumn&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Integer&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;primary_key&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;True&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;Base&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;metadata&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;create_all&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;engine&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;(note: under the hood SQLAlchemy has actually created a Table object and mapped it to our above class)&lt;/p&gt;
+
+&lt;!-- 1. Possible ways of using SQLA  --&gt;
+
+&lt;h1 id=&quot;flavors-of-sqla&quot;&gt;‘Flavors’ of SQLA&lt;/h1&gt;
+
+&lt;!-- 2. Creating more tables versus more entries in single table (but mention that you should consider your data model first and foremost!) --&gt;
+
+&lt;!-- 3. Chunking - how to do it and what chunk size works best? --&gt;
+
+&lt;!-- But nevertheless when you&#39;re faced with several options, its good to have a rough knowledge --&gt;
+
+&lt;!-- Will discuss three different &#39;options&#39; you could consider... --&gt;
+&lt;div class=&quot;footnotes&quot;&gt;
+  &lt;ol&gt;
+    &lt;li id=&quot;fn:1&quot;&gt;
+      &lt;p&gt;SQLAlchemy is an Object Relational Mapper (ORM) that (amongst other things) allows interaction with an SQL database through python objects. For a good discussion of why using an ORM like SQLAlchemy is worth the effort check out Daniel Weitzenfeld’s awesome post on &lt;a href=&quot;http://danielweitzenfeld.github.io/passtheroc/blog/2014/10/12/datasci-sqlalchemy/&quot;&gt;Why Data Scientists should use an ORM&lt;/a&gt;. &lt;a href=&quot;#fnref:1&quot; class=&quot;reversefootnote&quot;&gt;&amp;#8617;&lt;/a&gt;&lt;/p&gt;
+    &lt;/li&gt;
+  &lt;/ol&gt;
+&lt;/div&gt;
+</description>
+        <pubDate>Thu, 31 Dec 2015 11:29:14 +0000</pubDate>
+        <link>http://nicholasharrigan.com/sql/sqla/2015/12/31/test-page.html</link>
+        <guid isPermaLink="true">http://nicholasharrigan.com/sql/sqla/2015/12/31/test-page.html</guid>
+        
+        
+        <category>SQL</category>
+        
+        <category>SQLA</category>
+        
+      </item>
+    
+      <item>
+        <title>Welcome to Jekyll!</title>
+        <description>&lt;p&gt;You’ll find this post in your &lt;code&gt;_posts&lt;/code&gt; directory. Go ahead and edit it and re-build the site to see your changes. You can rebuild the site in many different ways, but the most common way is to run &lt;code&gt;jekyll serve&lt;/code&gt;, which launches a web server and auto-regenerates your site when a file is updated.&lt;/p&gt;
+
+&lt;p&gt;To add new posts, simply add a file in the &lt;code&gt;_posts&lt;/code&gt; directory that follows the convention &lt;code&gt;YYYY-MM-DD-name-of-post.ext&lt;/code&gt; and includes the necessary front matter. Take a look at the source for this post to get an idea about how it works.&lt;/p&gt;
+
+&lt;p&gt;Jekyll also offers powerful support for code snippets:&lt;/p&gt;
+
+&lt;script&gt;
+var i = 5;
+console.log(i);
+&lt;/script&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;print_hi&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;print&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;Hi, &lt;/span&gt;&lt;span class=&quot;si&quot;&gt;%&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;s&quot;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;%&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;name&lt;/span&gt;
+
+&lt;span class=&quot;nb&quot;&gt;zip&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;y&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+&lt;span class=&quot;n&quot;&gt;print_hi&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&#39;Tom&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;c&quot;&gt;# prints &#39;Hi, Tom&#39; to STDOUT.&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;Check out the &lt;a href=&quot;http://jekyllrb.com/docs/home&quot;&gt;Jekyll docs&lt;/a&gt; for more info on how to get the most out of Jekyll. File all bugs/feature requests at &lt;a href=&quot;https://github.com/jekyll/jekyll&quot;&gt;Jekyll’s GitHub repo&lt;/a&gt;. If you have questions, you can ask them on &lt;a href=&quot;https://talk.jekyllrb.com/&quot;&gt;Jekyll Talk&lt;/a&gt;.&lt;/p&gt;
+
+</description>
+        <pubDate>Tue, 17 Nov 2015 11:29:14 +0000</pubDate>
+        <link>http://nicholasharrigan.com/jekyll/update/2015/11/17/welcome-to-jekyll.html</link>
+        <guid isPermaLink="true">http://nicholasharrigan.com/jekyll/update/2015/11/17/welcome-to-jekyll.html</guid>
+        
+        
+        <category>jekyll</category>
+        
+        <category>update</category>
         
       </item>
     

@@ -1,0 +1,502 @@
+<p><code>python
+%pylab inline
+import pandas as pd
+from pandas import Series, DataFrame
+from pandas import datetime as dt
+import matplotlib.pyplot as plt
+from datetime import datetime
+import scipy.stats as stats
+from bs4 import BeautifulSoup
+import urllib2
+import matplotlib.patches as mpatches
+#Set default plot size for session
+pylab.rcParams['figure.figsize'] = 14, 10
+</code></p>
+
+<pre><code>Populating the interactive namespace from numpy and matplotlib
+</code></pre>
+
+<h1>1. Importing and cleaning data</h1>
+
+<p>First let’s import the data from the CSV file into a pandas dataframe, using the date of each call as the dataframes index, and helping pandas out with the types of any columns containing mixed datatypes</p>
+
+<p><code>python
+fname = "/Users/nicholasharrigan/R/data/cfpb_Consumer_Complaints.csv"
+#Read CSV file. Specify datatypes of mixed columns.
+cc_df = pd.read_csv(fname,index_col='Date received', dtype={4:object, 5:object, 6:object, 9: object})
+</code></p>
+
+<p>Pandas datetime objects make working with dates really easy, so lets convert our date index (which currently shows dates as strings with format ‘mm/dd/yyyy’) into a DatetimeIndex - made of datetime objects</p>
+
+<p><code>python
+# Re-index DF with date-time index (nb: list comprehension 4x faster than pd.to_datetime!)
+dt_values = [datetime.strptime(x,'%m/%d/%Y') for x in cc_df.index]
+cc_df.index = pd.DatetimeIndex(dt_values)
+</code></p>
+
+<p>First let’s take a look at how the number of calls each day changes over time.
+To do that let’s group the calls by distinct dates (there’ll normally be more than one call on each day) <br />
+We can then get the size of each group (corresponding to a different date) using pandas.groupby.size(). <br />
+But we can also quickly find what the most common products and states were for each date by aggregating the groups. <br />
+We can combine all this information (number of calls, most common product, state etc…) into a new dataframe</p>
+
+<p><code>python
+# Group by date index
+date_groups = cc_df.groupby(lambda x: x.date())
+# Aggregate by the size of entries for each group
+date_counts = date_groups.aggregate({'Product': lambda x: x.mode(), 'State': lambda x: x.mode()})
+date_counts['Calls'] = date_groups.size()
+date_counts.index.name = 'Date'
+</code></p>
+
+<p><code>python
+# #Uncomment this to save data as CSV
+# export_path = '/Users/nicholasharrigan/code/Jupyter/consumer_complaints/d3_viz/total_calls.csv'
+# date_counts.to_csv(export_path, columns=['Calls', 'Product', 'State'])
+</code></p>
+
+<h2>Total number of calls vs. date</h2>
+
+<p>Let’s plot how the total number of calls changes over time using our new dataframe</p>
+
+<p><code>python
+plt.scatter(date_counts.index, date_counts['Calls'].values, color = 'black');
+</code></p>
+
+<p><img src="BlogPost_files/BlogPost_11_0.png" alt="png" /></p>
+
+<p>Woah! There’s definitely two different things going on there. Presumably that’s the weekend and the weekdays. Let’s check. We’ll build a list of colours - red for the weekends and blue for weekdays - from our date index, and colour our data accordingly.</p>
+
+<p><code>python
+# Function that will assign red or blue depending on day of week
+def testfunc(x):
+    if (x.weekday()&gt;4):
+        return 'red'
+    else:
+        return 'blue'
+# Apply function across our datetime index
+day_colors = Series(date_counts.index.map(testfunc))
+</code></p>
+
+<p><code>python
+plt.scatter(date_counts.index, date_counts['Calls'].values, color= day_colors)
+red_patch = mpatches.Patch(color='red', label='Weekends')
+blue_patch = mpatches.Patch(color='blue', label='Weekdays')
+plt.legend(handles = [red_patch, blue_patch]);
+</code></p>
+
+<p><img src="BlogPost_files/BlogPost_14_0.png" alt="png" /></p>
+
+<p>There are some weekends when people call a lot more - wonder whether that’s holidays? Let’s plot them on as different colours.
+Since holidays tend to differ year to year by being defined as n weeks into a month, first a function to calculate dates n weeks into a month.</p>
+
+<p><code>python
+# Function to get name of day from datetime object
+def get_dayname(datetime_obj):
+    return pd.datetime.strftime(datetime_obj,'%A')
+# Function for date of given day n weeks into a given month in given year
+def nthday(day, num_weeks, month, year):
+    """Specify day as string, month and year as ints.
+    num_weeks can also be 'last' for last occurence in month
+    Returns None if go beyond required month"""
+    # Find first occurence of weekday in given month
+    first_day = next((dt(year,month,x) for x in arange(1,8) if get_dayname(dt(year,month,x))==day), None)
+    # Add required number of weeks
+    week = pd.Timedelta(weeks=1)
+    if num_weeks == 'last':
+        for num_weeks in range(2,6):
+            if ((first_day + week*num_weeks).month != month):
+                final_day = first_day + week*(num_weeks-1)
+                break
+    else:
+        final_day = first_day + week*(num_weeks-1)
+    # Only return if still in required month - None otherwise
+    if (final_day.month == month):
+        return final_day
+    else:
+        return None
+</code></p>
+
+<p>Now go through each year of interest and generate holidays (some of which are fixed date, some of which require nthday function)</p>
+
+<p><code>python
+holidays = []
+for year in arange(2011,2016):
+    holidays = np.append(holidays,[
+            # Fixed date holidays
+            #New year
+            dt(year, 1, 1),
+            #Independence day
+            dt(year, 7, 4),
+            #Veterans day
+            dt(year, 11, 11),
+            #Christmas day
+            dt(year, 12, 25),
+            # Variable date holidays
+            #Martin Luther King day
+            nthday('Monday', 3, 1, year),
+            #Presidents day
+            nthday('Monday', 3, 2, year),
+            #Memorial day
+            nthday('Monday', 'last', 5, year),
+            #Labor day
+            nthday('Monday', 1, 9, year),
+            #Columbus day
+            nthday('Monday', 2, 10, year),
+            #Thanksgiving
+            nthday('Thursday', 4, 11, year)
+        ])
+state_holidays = []
+for year in (2011,2016):
+    state_holidays = np.append(state_holidays, [
+            #California
+            dt(year, 3, 31),
+            dt(year, 5, 19),
+            dt(year, 3, 15),
+            #Florida
+            nthday('Thursday', 4, 11, year) + pd.Timedelta(days = 1),
+            #New york
+            dt(year, 2, 12),
+            nthday('Monday', 1, 11, year) + pd.Timedelta(days = 1)
+        ])
+#Include state holidays:
+holidays = np.concatenate([state_holidays, holidays])
+</code></p>
+
+<p>Colour green elements of day_colors colour specification that correspond to holidays</p>
+
+<p><code>python
+#First convert holiday datetime objects to dates (to match entries in datetime index), and convert to series
+#so can use .isin method.
+holidays = Series(holidays).apply(dt.date)
+#Locations of holidays
+holiday_locs = date_counts.index.isin(holidays)
+#Colour holiday points green
+day_colors[holiday_locs] = 'darkgreen'
+</code></p>
+
+<p><code>python
+plt.scatter(date_counts.index, date_counts['Calls'].values, color= day_colors)
+red_patch = mpatches.Patch(color='red', label='Weekends')
+blue_patch = mpatches.Patch(color='blue', label='Weekdays')
+green_patch = mpatches.Patch(color='green', label = 'Holidays')
+plt.legend(handles = [red_patch, blue_patch, green_patch]);
+</code></p>
+
+<p><img src="BlogPost_files/BlogPost_21_0.png" alt="png" /></p>
+
+<p>Weekday data also looks a bit ‘steppy’, let’s show different years on there.</p>
+
+<p><code>python
+#Get locations of year boundaries in datetime index
+year_ends = []
+for year in arange(2011, 2016):
+    year_dates = date_counts.index[[x.year == year for x in date_counts.index]]
+    year_ends.append([year_dates[0], year_dates[-1]])
+</code></p>
+
+<p><code>python
+plt.scatter(date_counts.index, date_counts['Calls'].values, color= day_colors)
+red_patch = mpatches.Patch(color='red', label='Weekends')
+blue_patch = mpatches.Patch(color='blue', label='Weekdays')
+green_patch = mpatches.Patch(color='green', label = 'Holidays')
+topy = gca().get_ylim()[1]
+#Add rectangles for each year
+for i in arange(len(year_ends)):
+    if i%2:
+        plt.gca().axvspan(year_ends[i][0], year_ends[i][1], 0, 1, facecolor='grey', edgecolor='grey', alpha=0.1)
+plt.legend(handles = [red_patch, blue_patch, green_patch])
+plt.xlim(date_counts.index[0],date_counts.index[-1])
+plt.ylim(0,date_counts['Calls'].max())
+plt.tight_layout;
+</code></p>
+
+<p><img src="BlogPost_files/BlogPost_24_0.png" alt="png" /></p>
+
+<h1>Histogram of number of calls</h1>
+
+<p>Histogram of total number of calls on different dates</p>
+
+<p><code>python
+plt.hist(date_counts['Calls'], bins=sqrt(len(date_counts['Calls'])));
+</code></p>
+
+<p><img src="BlogPost_files/BlogPost_27_0.png" alt="png" /></p>
+
+<p>Looks multimodal, but our previous time plot clearly shows that weekends and weekdays follow different trends. So maybe seperate into weekdays and weekends</p>
+
+<p><code>python
+# Get weekday/weekend entries - Note: no weekday convenience for index, and need to use map as no apply for index
+weekday_calls = date_counts['Calls'][date_counts.index.map(lambda x: x.weekday() &lt; 5)]
+weekend_calls = date_counts['Calls'][date_counts.index.map(lambda x: x.weekday() &gt; 4)]
+</code></p>
+
+<p><code>python
+fig, ax = plt.subplots(1,2);
+ax[0].hist(weekday_calls, bins=sqrt(len(weekday_calls)));
+ax[0].set_title('Weekday calls');
+ax[1].hist(weekend_calls, bins=sqrt(len(weekend_calls)));
+ax[1].set_title('Weekend calls');
+</code></p>
+
+<p><img src="BlogPost_files/BlogPost_30_0.png" alt="png" /></p>
+
+<p>Again looks like we still have multiple modes. Notably looks like more modes in case of weekdays. Looking back at time plot can see that there is an annual variation (and this is more pronounced for weekdays - suggesting this might be responsible). So plot by year</p>
+
+<p><code>python
+# Iterate over years have data for - leave out 2011 since only small amount of data
+years = arange(2012,2016)
+fig, ax = plt.subplots(len(years), 2)
+i=0
+wdays = []
+wends = []
+for y in years:
+    wend = weekend_calls[weekend_calls.index.map(lambda x: x.year == y)]
+    wday = weekday_calls[weekday_calls.index.map(lambda x: x.year == y)]
+    wdays.append(wday)
+    wends.append(wend)
+    ax[i,0].hist(wday, bins=sqrt(len(wday)))
+    ax[i,1].hist(wend, bins=sqrt(len(wend)), color='red')
+    ax[i,0].set_title('Weekday %s' %y)
+    ax[i,1].set_title('Weekend %s' %y)
+    i+=1;
+</code></p>
+
+<p><img src="BlogPost_files/BlogPost_32_0.png" alt="png" /></p>
+
+<p>Investigate how breaks down by months and weekdays with boxplots.
+First - how distribution of calls changes with each year - showing the clear rise in the mean</p>
+
+<p><code>python
+fig, ax = plt.subplots(1, 2);
+ax[0].boxplot(wdays, labels=years);
+ax[1].boxplot(wends, labels=years);
+ax[0].set_title('Weekdays by year');
+ax[1].set_title('Weekends by year');
+</code></p>
+
+<p><img src="BlogPost_files/BlogPost_34_0.png" alt="png" /></p>
+
+<p>Boxplots to show how calls vary with month, week of month and day of year</p>
+
+<p><code>python
+#Group data by month
+date_counts['Months'] = date_counts.index.map(lambda x: x.month)
+# month_grp = date_counts.groupby(date_counts['Months'])
+#Uncomment to only select months for given year
+year = 2013
+month_grp = date_counts[date_counts.index.map(lambda x: x.year == year)].groupby('Months')
+#Iterate over groups and collect number of calls each month into list of series
+month_counts = []
+month_labels = []
+for x,y in month_grp:
+    month_counts.append(y['Calls'])
+    #Dirty hack using dummy datetime object to convert month index to string using pd.datetime.strftime
+    month_labels.append(datetime(1900,x,1).strftime('%B'))
+#Plot boxplots with data
+plt.boxplot(month_counts, labels=month_labels);
+# plt.violinplot(month_counts, showmeans=True, showextrema=True);
+# plt.xticks(arange(len(month_labels))+1,month_labels);
+plt.title('Distribution of calls each month');
+</code></p>
+
+<p><img src="BlogPost_files/BlogPost_36_0.png" alt="png" /></p>
+
+<p>Boxplots to show how calls vary with weeks of month</p>
+
+<p><code>python
+#Group data by week of *year*
+date_counts['Weeks'] = date_counts.index.map(lambda x: pd.to_datetime(x).week)
+woy_grp = date_counts.groupby(date_counts['Weeks'])
+# year = 2012
+# woy_grp = date_counts[date_counts.index.map(lambda x: x.year == year)].groupby('Weeks')
+woy_counts = []
+woy_labels = []
+for x,y in woy_grp:
+    woy_counts.append(y['Calls'])
+    woy_labels.append(x)
+plt.boxplot(woy_counts, labels=woy_labels);
+</code></p>
+
+<p><img src="BlogPost_files/BlogPost_38_0.png" alt="png" /></p>
+
+<p>Boxplot to see how Calls vary with day of week</p>
+
+<p><code>python
+#Group data by day of week
+date_counts['Day'] = date_counts.index.map(lambda x: x.weekday())
+day_grp = date_counts.groupby(date_counts['Day'])
+# year = 2013
+# day_grp = date_counts[date_counts.index.map(lambda x: x.year == year)].groupby('Day')
+day_counts = []
+day_labels = []
+for x,y in day_grp:
+    day_counts.append(y['Calls'])
+    #Dirty hack using dummy datetime object to convert month index to string using pd.datetime.strftime
+    day_labels.append(datetime(1900,1,x+1).strftime('%A'))
+plt.boxplot(day_counts, labels=day_labels);
+</code></p>
+
+<p><img src="BlogPost_files/BlogPost_40_0.png" alt="png" /></p>
+
+<h2>Most common products and states</h2>
+
+<p>Since we also have the most commonly complained about products (and states) by date, let’s take a look at these too. <br />
+First, what are the sets of products and states that make it into the most common?</p>
+
+<p><code>python
+# Get set of products that make the daily top
+# (note: mode() returns array in case of draws so we exclude none strings)
+top_prods = date_counts['Product'][[type(x) == str for x in date_counts['Product']]].unique()
+</code></p>
+
+<p><code>python
+# Get set of states that make the daily top
+date_counts['State'][[type(x) == str for x in date_counts['State']]].unique()
+</code></p>
+
+<pre><code>array(['FL', 'NY', 'CA', 'TX', 'NC', 'PA', 'IL', 'GA', 'OH', 'MA', 'MD',
+       'NJ', 'VA', 'LA'], dtype=object)
+</code></pre>
+
+<p>Stacked bar charts to show how different products vary over dates</p>
+
+<p><code>python
+#Group original data frame heirarchically by product then date
+prod_groups = cc_df.groupby(['Product',cc_df.index])
+#Aggregate counts for each product group at each date
+prod_counts = prod_groups.aggregate('count').max(axis=1)
+</code></p>
+
+<p><code>python
+#Consider only those products that show up as max on some days, and reindex to include all dates
+#with zeros for missing data
+all_dates = cc_df.index.unique()
+wday_dates = all_dates[all_dates.map(lambda x: x.weekday &lt; 4)]
+wday_prods = {}
+for prod in top_prods:
+    if (len(prod_counts[prod].index) &lt; len(all_dates)):
+        wday_prods[prod] = prod_counts[prod].reindex(wday_dates, fill_value=0)
+</code></p>
+
+<p><code>python
+first_window = 15
+second_window = 5
+wday_prods_smooth = {}
+for prod in top_prods:
+    if first_window &gt; 0:
+        wday_prods_smooth[prod] = pd.rolling_mean(wday_prods[prod], first_window, min_periods = 1)
+        if second_window &gt; 0:
+            wday_prods_smooth[prod] = pd.rolling_mean(wday_prods_smooth[prod], second_window, min_periods=1)
+    else: wday_prods_smooth = wday_prods
+</code></p>
+
+<p><code>python
+def get_month_ranges(yr, yr_start, yr_end, num_months):
+    """yr - year to consider
+    yr_start - datetime.date object for first day in this year in data
+    yr_end - datetime.date object for last day in this year in data
+    num_months - number of months in this year
+    returns array of start and end dates of all months in yr"""
+    limits = []
+    #Initialise start dates and current month
+    start_date = yr_start
+    current_month = yr_start.month
+    #Loop over months
+    for j in arange(num_months):
+        #Update start_date for this month as 1st
+        start_date = datetime(start_date.year,current_month,1).date()
+        #Update end of month as last day of month
+        end_of_month = (start_date + pd.tseries.offsets.MonthEnd()).date()
+        #If in first month then use start of data as start_date
+        if (start_date.month == yr_start.month):
+            start_date = yr_start
+        #Check we aren't after last date in data
+        if ((end_of_month.month == yr_end.month) &amp; (end_of_month.day &gt; yr_end.day)):
+            end_of_month = yr_end
+        limits.append([start_date, end_of_month])
+        current_month +=1
+    return limits
+</code></p>
+
+<p>```python
+#Plot using stacked area charts
+c_wheel12 = [‘#FF0000’, ‘#FF7000’, ‘#FFFF00’, ‘#7FFF00’, ‘#00FF00’, ‘#00FF7F’, ‘#00FFFF’, ‘#007FFF’, ‘#0000FF’, ‘#7F00FF’, ‘#FF00FF’, ‘#FF007F’]
+#Get number of months in each year that is present in data
+num_months = []
+for year in arange(2011,2016):
+    num_months.append(len(np.unique(cc_df.index.month[cc_df.index.year == year])))
+# Using rolling mean
+plt_vals = np.row_stack([wday_prods_smooth[prod] for prod in top_prods]);
+# Using raw values
+# plt_vals = np.row_stack([wday_prods[prod] for prod in top_prods]);
+cols = [‘red’,’orange’,’yellow’,’green’,’blue’,’indigo’];
+areaplot = plt.stackplot(wday_dates, plt_vals, baseline=’sym’, zorder=2);
+proxy_rects = [Rectangle((0, 0), 1, 1, fc=pc.get_facecolor()[0]) for pc in areaplot];
+for i in arange(len(year_ends)):
+    #Draw name of year in middle of this year</p>
+
+<pre><code>#Draw shaded boxes to represent months - dividing year up into 12
+month_ends = get_month_ranges(year_ends[i][0].year, year_ends[i][0], year_ends[i][1], num_months[i])
+for j, rng in enumerate(month_ends):
+    plt.gca().axvspan(rng[0], rng[1], 0, 1, facecolor = c_wheel12[j], edgecolor='grey', alpha = 0.2)
+    mid_day = datetime(rng[1].year, rng[1].month, int(rng[1].day/2.0)).date()
+    lett = pd.datetime.strftime(rng[1],'%B')[0]
+    plt.text(mid_day, plt.ylim()[0]+30, lett, horizontalalignment='center')
+    plt.text(mid_day, plt.ylim()[1]-30, lett, horizontalalignment='center')
+if i%2:
+    #Draw dashed lines to represent year
+    plt.gca().axvspan(year_ends[i][0], year_ends[i][1], -0.1, 1.1, facecolor = 'none', edgecolor='black', linestyle='dashed', linewidth=3, animated='True', alpha=0.8); plt.xlabel('Date', family = 'sans-serif', fontsize=15) plt.ylabel('Number of calls', family='sans-serif', fontsize=15) plt.title('People love to moan', family='sans-serif', fontsize=20) plt.legend(proxy_rects, top_prods.tolist(), loc='upper left'); #plt.legend() #plt.legend([mpatches.Patch(color= colval) for colval in cols], top_prods) #plt.bar(prod_plot['Mortgage'].index, prod_plot['Mortgage']); ```
+
+
+
+
+&lt;matplotlib.legend.Legend at 0x10db105d0&gt;
+</code></pre>
+
+<p><img src="BlogPost_files/BlogPost_50_1.png" alt="png" /></p>
+
+<p>Looks a bit noisy, use numpy convolve to find moving (running) average</p>
+
+<h1>2. Linear Regression</h1>
+
+<p><code>python
+import sklearn
+</code></p>
+
+<p>```python
+#Get weekend counts
+wend_counts = date_counts[date_counts.index.map(lambda x: x.weekday()&gt;4)]
+#Define training set and test set:
+#For Train-Validate-Test (when several competing models - eg: hyperparameter choices - to validate) use 50%-25%-25%
+#If no need to validate (only one model chosen already) then do 70%-30%
+train_wend = wend_counts[:100]
+test_wend = wend_counts[100:130]</p>
+
+<h1 id="read-up-about-cross-validation-and-more-generally-validation-with-simple-linear-regression">Read up about cross validation and more generally validation with simple linear regression.</h1>
+<p>#eg: https://lagunita.stanford.edu/c4x/HumanitiesScience/StatLearning/asset/model_selection.pdf
+```</p>
+
+<h1>3. Plot all calls vs. date</h1>
+
+<p>```python</p>
+
+<p>```</p>
+
+<h1>4. Plot different products calls vs. date</h1>
+
+<p>```python</p>
+
+<p>```</p>
+
+<h1>5. Analysis of distribution of mortgage calls</h1>
+
+<p>```python</p>
+
+<p>```</p>
+
+<h1>5. Fraction of weekend calls by state (null result)</h1>
+
+<p>```python</p>
+
+<p>```</p>
