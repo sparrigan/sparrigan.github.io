@@ -119,7 +119,7 @@ Its also important to point out that some of the dataframe columns have relative
 
 {% highlight python %}
 # Don't consider nan/null entries
-not_null = dataframe[column][dataframe[column].notnull()]
+not_null = dataframe[column].dropna()
 # Top ten for column
 top_ten = not_null.value_counts()[:10].index
 {% endhighlight %}

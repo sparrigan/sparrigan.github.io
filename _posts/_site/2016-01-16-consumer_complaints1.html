@@ -1,0 +1,203 @@
+<p>A little while back, the US Consumer Financial Protection Bureau (CFPB) opened up <a href="http://www.consumerfinance.gov/complaintdatabase/">their excellent database of consumer complaints</a>, containing date-stamped complaints made by US citizens about various financial products. Turns out that people love to moan - especially about money - and the dataset contains hundreds of thousands of entries spanning the past five years. Each entry has a wealth of information, ranging from the financial product under complaint to the location of complainer, and how the complaint was submitted. Over the next few posts I’ll use the CFPB data to discuss a few different techniques and tools that I think are noteworthy.</p>
+
+<p>One thing that immediately stands out about the consumer complaints data is that the majority of the raw data is <em>categorical</em> - having no intrinsic ordering. In this post I’ll focus on how to get a quick and dirty overview of the dataset using matrix plots - which are well suited to initial explorations of categorical data. I’ll be using python, along with the holy trinity (the <a href="http://www.numpy.org/">NumPy</a>, <a href="http://pandas.pydata.org/">pandas</a> and <a href="http://matplotlib.org/">matplotlib</a> libraries). Relevant excerpts of code are given below inline, but everything is collected together in a single IPython notebook <a href="TODO: LINK TO IPYTHON NOTEBOOK">here</a>.</p>
+
+<h2 id="importing-the-data">Importing the data</h2>
+
+<p>At the time I acquired it, CFPB provided the data in a singe csv file, so the convenient pandas <code>read_csv</code> method can be used to import this directly into a dataframe. When importing csv files, pandas can very occasionally struggle (or at least take a while) identifying the datatypes of columns. We can use the <code>dtype</code> parameters of <code>read_csv</code> to help pandas out with typing of these columns.</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
+<span class="n">fname</span> <span class="o">=</span> <span class="s">"&lt;path&gt;/cfpb_Consumer_Complaints.csv"</span>
+<span class="c">#Read CSV file. Specify datatypes of mixed columns.</span>
+<span class="n">cc_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span><span class="n">index_col</span><span class="o">=</span><span class="s">'Date received'</span><span class="p">,</span> <span class="o">/</span>
+			<span class="n">dtype</span><span class="o">=</span><span class="p">{</span><span class="mi">4</span><span class="p">:</span><span class="nb">object</span><span class="p">,</span> <span class="mi">5</span><span class="p">:</span><span class="nb">object</span><span class="p">,</span> <span class="mi">6</span><span class="p">:</span><span class="nb">object</span><span class="p">,</span> <span class="mi">9</span><span class="p">:</span> <span class="nb">object</span><span class="p">})</span></code></pre></figure>
+
+<p>And hark! A dataframe is born:</p>
+
+<div>
+<table cellpadding="2" border="1" class="dataframe" style="border-collapse: collapse; font-size: 10pt; text-align: center;">
+  <thead>
+    <tr>
+      <th></th>
+      <th>Product</th>
+      <th>Sub-product</th>
+      <th>Issue</th>
+      <th>Sub-issue</th>
+      <th>Consumer complaint narrative</th>
+      <th>Company public response</th>
+      <th>Company</th>
+      <th>State</th>
+      <th>Submitted via</th>
+    </tr>
+    <tr>
+      <th>Date received</th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>07/13/2015</th>
+      <td>Student loan</td>
+      <td>Non-federal student loan</td>
+      <td>Can't repay my loan</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>Transworld Systems Inc.</td>
+      <td>PA</td>
+      <td>Web</td>
+    </tr>
+    <tr>
+      <th>07/13/2015</th>
+      <td>Debt collection</td>
+      <td>NaN</td>
+      <td>Cont'd attempts collect debt not owed</td>
+      <td>Debt is not mine</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>Transworld Systems Inc.</td>
+      <td>NY</td>
+      <td>Web</td>
+    </tr>
+    <tr>
+      <th>07/13/2015</th>
+      <td>Debt collection</td>
+      <td>Credit card</td>
+      <td>Taking/threatening an illegal action</td>
+      <td>Sued w/o proper notification of suit</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>Transworld Systems Inc.</td>
+      <td>KY</td>
+      <td>Web</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<p><br /></p>
+
+<p>Of course it’s actually a bit bigger than what I’ve shown here - about <script type="math/tex">200,000</script> times bigger to be precise - but from this small snippet the categorical nature of most of the columns is still clear. A great tool for exploring relationships between the other <script type="math/tex">418,522</script> rows and several columns we’re missing is a <a href="http://www.r-bloggers.com/scatterplot-matrices/">scatterplot matrix</a>. But unfortunately scatterplots are only really suited to quantitative data. What we could really use here is the tongue-twisting and much coveted <em>matrix-plot matrix</em>.</p>
+
+<h2 id="matrix-plot-matrix">Matrix-plot matrix</h2>
+
+<p><img style="float: right; padding-left: 15px;" src="http://www.nicharrigan.com/github_images/22ident.png" />
+A useful alternative option to scatterplots in purely categorical cases is the <em>matrixplot</em>. Doing exactly what they say on the tin - matrix-plots represent the magnitudes of values from a matrix (or array if you’re more of a computer scientist) by points of color in a visual grid. For example, the image to the right is a matrix-plot of a <script type="math/tex">2\times{2}</script> identity matrix. Matrix-plots can be generated in matplotlib through <code>pylab.matshow</code>. I’ve used these a lot before for visualizing some <a href="http://arxiv.org/abs/0709.1149">pretty weird (but pretty pretty) matrices</a> tied to the linear algebra of quantum mechanics -  but they work just as well in less esoteric settings. Here we can use them to visualize the number of coincident complaints that occur between categories from any two of our dataframe columns. In fact, using matplotlib’s sub-plots tools, we can even put together a matrix-plot equivalent of a scatterplot matrix - a <em>‘matrix-plot matrix’</em> if you will.</p>
+
+<p>Here’s what we get if we produce a ‘matrix-plot matrix’ for nine of the most interesting columns of the CFPB consumer complaints dataframe (code available <a href="https://gist.github.com/sparrigan/fd8d94c4921fb6017182">here</a>):</p>
+
+<div style="text-align:center"><img src="http://www.nicharrigan.com/github_images/matrixplotmatrix.png" /></div>
+
+<p><br /></p>
+
+<p>As expected, the plot matrix is symmetric with diagonalized blocks along its main diagonal. Note that:</p>
+
+<ul>
+  <li>
+    <p>There are no category labels within each column (if there were it’d be more word-cloud than matrix-plot!). The purpose of the plot is to help us see patterns, and guide us on which columns to investigate further with individual labelled plots.</p>
+  </li>
+  <li>
+    <p>There is no colorbar (key).  The darker the color, the higher the number of complaints, but the exact mapping is (linearly) normalized for each plot according to it’s own max/min values - so there is no ‘one’ colorbar key for all the plots.</p>
+  </li>
+</ul>
+
+<p>Its also important to point out that some of the dataframe columns have relatively large number of categories (for example, there are 96 different categories of <strong>Issue</strong>). To make the above plot feasible, only the top ten categories for each column were used. Selecting the top ten categories for a column only takes a couple of lines with pandas<sup id="fnref:foot1"><a href="#fn:foot1" class="footnote">1</a></sup>:</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="c"># Don't consider nan/null entries</span>
+<span class="n">not_null</span> <span class="o">=</span> <span class="n">dataframe</span><span class="p">[</span><span class="n">column</span><span class="p">]</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span>
+<span class="c"># Top ten for column</span>
+<span class="n">top_ten</span> <span class="o">=</span> <span class="n">not_null</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()[:</span><span class="mi">10</span><span class="p">]</span><span class="o">.</span><span class="n">index</span></code></pre></figure>
+
+<h2 id="logarithmic-colormaps">Logarithmic Colormaps</h2>
+
+<p>Several of the subplots look as though they might contain some interesting features. Let’s take a more detailed look at <strong>Company</strong> versus <strong>Product</strong>:</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">plt</span><span class="o">.</span><span class="n">matshow</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="n">cm</span><span class="o">.</span><span class="n">gray_r</span><span class="p">)</span></code></pre></figure>
+
+<p><img src="http://www.nicharrigan.com/github_images/comp_prod_lin.png" alt="Company versus product - Linear Colormap" /></p>
+
+<p>This shows the number of complaints about a given company regarding a given financial product. There’s a couple of problems with this matrix-plot. First - and most obviously - a lot of the detail seems ‘washed out’. This problem stems from the colormap we’re using. To be more precise, a <a href="http://matplotlib.org/users/colormaps.html">colormap</a> is a rule for mapping values (in this case number of complaints) to a color that we will display. Here we are using a (reversed grayscale) <em>linear</em> map. But if we plot a quick histogram of the orders of magnitude that appear in the range of complaints in our company versus product matrix-plot, we can see the problem:</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">log_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span><span class="n">log_data</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">sqrt</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">log_data</span><span class="p">))),</span> <span class="n">normed</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s">"Burlywood"</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">);</span></code></pre></figure>
+
+<p><img src="http://www.nicharrigan.com/github_images/data_hist.png" alt="Histogram of magnitudes" /></p>
+
+<p>Clearly there’s a large variance in the orders of magnitude contained within our data, with a skew towards lower values. So a linear scale isn’t the best choice for our colormap - being bound to ‘wash-out’ detail from one end of the data. Instead, we’re better off using a logarithmically scaled colormap, where changes in the <em>order of magnitude</em> of our data are mapped to changes along our colormap. With <code>pylab.matshow</code> this is easy enough to achieve by setting the parameter <code>norm=Lognorm()</code>. This gives us the following, much more readable matrix-plot (note the colorbar key below the figure is now logarithmic):</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="kn">from</span> <span class="nn">matplotlib.colors</span> <span class="kn">import</span> <span class="n">LogNorm</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">matshow</span><span class="p">(</span><span class="n">data_array</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="n">cm</span><span class="o">.</span><span class="n">gray_r</span><span class="p">,</span> <span class="n">norm</span><span class="o">=</span><span class="n">LogNorm</span><span class="p">())</span></code></pre></figure>
+
+<p><img src="http://www.nicharrigan.com/github_images/comp_prod_log.png" alt="Company versus product- Log Colormap" /></p>
+
+<p>Although we can now visualize the data more easily, there’s still a subtler problem. Ideally we’d like to be able to look at this matrix-plot and make fair comparisons between complaints made to the different companies (regarding various products). But the problem is that as well as our colormap, <em>the data itself</em> needs to be normalized. At the very least we should take into account the number of customers each company has (to give a ‘per-capita’ number of complaints), and also consider the fraction of their business that is involved with any given product.</p>
+
+<p>Estimating the customer-base of a company is an interesting (but hefty) data project in itself, so lets instead take a look at another promising sub-plot from our matrix-plot matrix - <strong>State</strong> versus <strong>Product</strong>:</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">plt</span><span class="o">.</span><span class="n">matshow</span><span class="p">(</span><span class="n">state_data_array</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="n">cm</span><span class="o">.</span><span class="n">gray_r</span><span class="p">,</span> <span class="n">norm</span><span class="o">=</span><span class="n">LogNorm</span><span class="p">())</span></code></pre></figure>
+
+<p><img src="http://www.nicharrigan.com/github_images/state_prod_log_gray.png" alt="State versus product - Normalized log colormap" /></p>
+
+<p>This plot uses a log-scaled colormap, <em>and</em> the underlying data has been normalized. In this case, since we’d like to fairly compare complaints from different states, we’ve normalized data from each state by the state population - which was scraped from wikipedia<sup id="fnref:foot2"><a href="#fn:foot2" class="footnote">2</a></sup> using the python library <a href="http://www.crummy.com/software/BeautifulSoup/">beautifulSoup</a> (scraper code <a href="https://gist.github.com/sparrigan/de6301c7ac4ddf83e346#file-wiki_state_scraper-py">here</a>). This gives us ‘per-capita’ complaints for each product.</p>
+
+<p>Clearly mortgages are the subject of most complaints in almost every state, whilst the residents of D.C are pretty vocal across the board. Also of note is that there are zero complaints regarding payday loans in North Dakota, whilst there are a significant number of complaints in D.C and Georgia. In all three states payday loans are <a href="http://www.paydayloaninfo.org/state-information">effectively illegal</a>. It could be interesting to try and tease out whether these differences can be attributed to state-by-state approaches to the status of payday loans.</p>
+
+<h2 id="choosing-a-colormap">Choosing a colormap</h2>
+
+<p>So far we’ve stuck with using a grayscale colormap - albeit one with a logarithmic scale (in fact we’ve used <code>gray_r</code> - <em>reversed</em> grayscale). There’s a lot to be said for grayscale. Most importantly, it’s a <em>sequential</em> scale, meaning that the perceived luminosity varies monotonically throughout the scale. This helps prevent <a href="https://mycarta.wordpress.com/2012/10/06/the-rainbow-is-deadlong-live-the-rainbow-part-3/">luminosity artifacts</a> in our matrix plots - where regions might stand out purely because of the nature of the colormap rather than because of legitimate changes in the data.</p>
+
+<p>But nevertheless, lets try and get a bit more color in our lives. The relationship between the human perception of ‘lightness’ and coordinates in colorspace is a fascinating, complex, and messy subject<sup id="fnref:foot3"><a href="#fn:foot3" class="footnote">3</a></sup>, but the <a href="http://matplotlib.org/users/colormaps.html">matplotlib documentation</a> offers a great breakdown of different colormap schemes and how their luminosity varies.</p>
+
+<p>There are legitimate reasons to want something with a bit more pizazz. Although <code>gray_r</code> does a great job, it isn’t a <em>uniform</em> colormap - meaning that equal changes in the data do not always map to equal changes in perceived lightness at different points along the <code>gray_r</code> colormap. But if we wander out of the shadows and into the rainbow then we can find colormaps that are both sequential <em>and</em> uniform. But take care! They’re not the norm - in fact the default colormap used by matlab, and all but the most recent versions of matplotlib - called <code>jet</code> - isn’t even <em>sequential</em>, let alone uniform. You don’t have to spend long on data-viz blogs before you encounter some pretty full on <code>jet</code>-hate.</p>
+
+<p>Fortunately though, matplotlib (v1.5+) does include some colormaps that are both sequential and uniform. Namely - <code>viridis</code>, <code>inferno</code>, <code>plasma</code> and <code>magma</code>.</p>
+
+<p>So let’s use a logarithmic scale and the <code>magma</code> colormap to inspect the matrix-plot between <strong>State</strong> and <strong>Submitted via</strong> (how the complaint was registered):</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">plt</span><span class="o">.</span><span class="n">matshow</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s">"magma"</span><span class="p">,</span> <span class="n">norm</span><span class="o">=</span><span class="n">LogNorm</span><span class="p">())</span></code></pre></figure>
+
+<p><img src="http://www.nicharrigan.com/github_images/state_submit_magma_log.png" alt="State versus product - Normalized log colormap" /></p>
+
+<p>Notice that along the bottom row (the <strong>Email</strong> category) there are some blank spaces. Looking at the scale for the magma colormap, you might think that these must correspond to relatively high values - but in fact, looking up the relevant dataframe entries, we find that they’re zero. This is a potential problem with using a logarithmic scale: <script type="math/tex">\log_b(0)</script> is undefined for any base, <script type="math/tex">b</script>. In fact, this problem was also present in the plots we created using the  <code>gray_r</code> colormap - we just didn’t notice it, since <code>gray_r</code> <em>would</em> have also associated zero with white. To get around this, we can replace the <code>LogNorm()</code> scale with <code>SymLogNorm()</code> (Symmetric LogNorm - <a href="http://matplotlib.org/api/colors_api.html#matplotlib.colors.SymLogNorm">doc</a>). <code>SymLogNorm</code> is essentially a piecewise function that is linear within some region about the origin and logarithmic otherwise. We pass <code>SymLogNorm()</code> an argument for our ‘threshold’ - how close a point needs to be to the origin to be mapped linearly, rather than logarithmically. Choosing the value of this threshold requires us to think a little about how our data is distributed. A good threshold choice for the <strong>State</strong> vs <strong>Submission Type</strong> matrix-plot is <script type="math/tex">10^{-6}</script>, which gives us the following:</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">plt</span><span class="o">.</span><span class="n">matshow</span><span class="p">(</span><span class="n">state_data_array</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s">"magma"</span><span class="p">,</span> <span class="n">norm</span><span class="o">=</span><span class="n">SymLogNorm</span><span class="p">(</span><span class="mi">10</span><span class="o">**</span><span class="p">(</span><span class="o">-</span><span class="mi">6</span><span class="p">)))</span></code></pre></figure>
+
+<p><img src="http://www.nicharrigan.com/github_images/state_submit_magma_symlog.png" alt="State versus submission type - SymLogNorm" /></p>
+
+<p>One thing you’ll notice if you try to reproduce the above plot is that the colormap tick-marks go a bit haywire. Unfortunately <code>SymLogNorm()</code> seems to break the default tick-mark placement, and you’ll need to correct it yourself with something like this:</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">tick_locations</span><span class="o">=</span><span class="p">([</span><span class="mi">0</span><span class="p">]</span><span class="o">+</span><span class="p">[(</span><span class="mi">10</span><span class="o">**</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="n">minlog</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">maxlog</span><span class="o">+</span><span class="mi">1</span><span class="p">)]);</span>
+<span class="n">cbar</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">im</span><span class="p">,</span> <span class="n">ticks</span><span class="o">=</span><span class="n">tick_locations</span><span class="p">,</span> <span class="n">orientation</span><span class="o">=</span><span class="s">'horizontal'</span><span class="p">,</span> \
+			<span class="n">pad</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">shrink</span><span class="o">=</span><span class="mf">0.3</span><span class="p">)</span>
+<span class="n">cbar</span><span class="o">.</span><span class="n">ax</span><span class="o">.</span><span class="n">set_xticklabels</span><span class="p">([</span><span class="s">'$0$'</span><span class="p">]</span><span class="o">+</span> \
+			<span class="p">[</span><span class="s">'$10^{</span><span class="si">%</span><span class="s">r}$'</span> <span class="o">%</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="n">minlog</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">maxlog</span><span class="o">+</span><span class="mi">1</span><span class="p">)]);</span></code></pre></figure>
+
+<p>Bingo! Data-inspection-perfection (well, imporvement at least). And straight away some interesting points stand out in our colorful new matrix-plot. For example, New Hampshire seems to be quite keen on complaining through referals. Whilst Michigan and Delaware are pretty retro with all that faxing.</p>
+
+<h2 id="next-time">Next time</h2>
+
+<p>I’ve found matrix-plots to be great tools for getting a quick overview of the data and either showing trends, or just suggesting where it might be fruitful to look to find them. But of course ultimately we’re really interested in using statistics to verify, refute or utilise more quantitative relationships.</p>
+
+<p>In the next blog post, I’ll continue using the CFPB dataset to look at how registered complaints have varied over time, leveraging some of the power of the pandas <code>datetime</code> object and more matplotlib goodness.</p>
+
+<div class="footnotes">
+  <ol>
+    <li id="fn:foot1">
+      <p>Our selecting of the top ten also explains why many of the subplots appear to have ‘smooth gradients’ within our grayscale colormap. This is a little unexpected, since the categories for each column are unordered - so we wouldn’t expect any correlation between number of complaints and the proximity of categories on the plot. However, the pandas <code>value_counts()</code> method returns categories sorted in order of number of counts (i.e. complaints). One could argue that it would be a good idea to randomize this ordering to prevent apparent trends where none exist, but with a little caution, this ordering can be useful to aid comparing the spread of values from different categories. <a href="#fnref:foot1" class="reversefootnote">&#8617;</a></p>
+    </li>
+    <li id="fn:foot2">
+      <p>Wikipedia’s <code>robots.txt</code> states <em>“Friendly, low-speed bots are welcome viewing article pages, but not dynamically-generated pages please.”</em>. My bot was not only friendly, it was polite and well mannered (offered to take Wikipedia out for a steak dinner). <a href="#fnref:foot2" class="reversefootnote">&#8617;</a></p>
+    </li>
+    <li id="fn:foot3">
+      <p>Human vision itself is just insanely and amazingly interesting - even modulo neural networks. One of the best books I’ve ever read is <a href="http://www.amazon.co.uk/First-Steps-Seeing-R-W-Rodieck/dp/0878937579">Rodieck’s “The First Steps in Seeing”</a>, which I fervently recommend to anyone remotely interested in how things work, computing, or just being amazed. <a href="#fnref:foot3" class="reversefootnote">&#8617;</a></p>
+    </li>
+  </ol>
+</div>
