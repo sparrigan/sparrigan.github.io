@@ -5,14 +5,14 @@ date:   2016-01-29 16:36:00 +0000
 categories: DataScience Python JS Web Celebrodisiac
 ---
 
-This post explains my motivation for building a web-app called [celebrodisiac][2]. If you haven’t seen it, then pop over, take a look and have a play around. I envisioned [celebrodisiac][2] in order to help with a larger project I’ve been working on in my spare time. Bear with me and I’ll take you on a journey steeped in history, glamour and babies. Actually, lots of babies.
+This post explains my motivation for building a web-app called [celebrodisiac][2]. If you haven’t seen it, then pop over, take a look and have a play around. I came up with celebrodisiac to try and help solve a larger project I’ve been working on in my spare time. Bear with me and I’ll take you on a journey steeped in history, glamour and babies... *lots* of babies.
 
-The [US Census dataset][3] is a very popular for practicing statistical methods – especially the data it contains on baby-names registered each year. Whilst exploring it to hone my [pandas][4] skills, I noticed something interesting. For one reason or another, I ended up creating the below plot, which shows the number of baby names that **end** in the various letters of the alphabet over the years.
+The [US Social Security baby-names dataset][3] contains information on the number of different baby names registered each year in the US, and is a popular test-bed for practicing statistical methods. Whilst exploring it to hone my [pandas][4] skills, I noticed something pretty interesting. Whilst mooching around, I ended up creating the below plot, showing the number of baby names that **end** in the various letters of the alphabet each year.
 
 ![Time-series for last letters of baby names](http://www.nicharrigan.com/github_images/last_lett.png)
 
 
-One thing that sticks out a mile is that – weirdly - around 1910, there’s a sudden drop in names ending in the letters **a** and **e** (and a small increase in names ending in other letters). My first thought was the most exciting thought a scientist can have: *“that's odd...”*.  I actually have a deerstalker next to my desk precisely for moments like this, and so I donned it with no small pleasure. My initial speculation was  that this could perhaps be due to several big-hitter names decreasing in popularity. But looking at which different names contributed to the change this didn’t seem likely, and besides, it’d be quite a coincidence. Perhaps then, the decrease in a and e ending names is a symptom of something deeper. Spurred on by this, I looked at how last letters are distributed if we consider the space of all possible names that people ever choose, and this is what I found:
+Weirdly, around 1910, there’s a sudden drop in names ending in the letters **a** and **e** (and a small increase in names ending in other letters). My first thought was the ever-exciting: *“that's odd...”*.  I actually have a deerstalker next to my desk precisely for moments like this, and so I donned it with no small pleasure. My initial speculation was  that this could perhaps be due to several big-hitter names decreasing in popularity. But looking at which different names contributed to the change this didn’t seem likely, and besides, it’d be quite a coincidence. Perhaps then, the decrease in a and e ending names is a symptom of something deeper. Spurred on by this, I looked at how last letters are distributed if we consider the space of all possible names that people ever choose, and this is what I found:
 
 ![Distribution of last letters in whole namespace](http://www.nicharrigan.com/github_images/name_last_lett_dist.png)
 
@@ -20,7 +20,7 @@ Names ending in **a** and **e** predominate. So we would *expect* **a** and **e*
 
 *“Come Watson!...”* I shouted at no-one in particular, as the deerstalker slipped over my glasses and obscured my vision, *“…the game is afoot!”*. And in this case, the name of the game is entropy. I really needed a little bit more convincing that this hypothesized name ‘specialization’ was worth investigating, and so I turned to one of my favorite information-theoretic measures. Although it has a bad rep for un-tidying things in physics, entropy is an incredibly useful tool. In this case you can more or less think of it as a measure of how ‘fair’ peoples choices of baby-names are. If during one year everyone picked a name for their baby from the namespace completely at random, then the entropy of baby-names that year would be high. At the other extreme, if everyone just picked the same name (ultra-specialization!) then the entropy would be very low (zero in fact).
 
-We can calculate the entropy of the baby-names people choose each year (in fact, the entropy is a biased estimator, and we need to [use a correction][^foot1] called the Miller-Madow estimator). Here is what we get:
+We can calculate the entropy of the baby-names people choose each year (in fact, the entropy is a biased estimator, and we need to use a correction[^foot1] called the Miller-Madow estimator). Here is what we get:
 
 ![Millow_Madow estimator over time](http://www.nicharrigan.com/github_images/entropy.png)
 
@@ -30,7 +30,7 @@ This adds weight to our hypothesis that, around 1910, people's choices of baby-n
 
 In this plot we’ve ordered baby-names by their popularity within a given year, and then generated the cumulative sum of occurrences. Plots for each year are overlaid and distinguished by the colormap, with 1910 being shown in red. It’s clear that there is a transition to the names chosen being more concentrated at a set of more popular names (corresponding to the CDF having more weight for lower values on the x-axis) – with the turning point being roughly around 1910.
 
-Having more reliably established an effect, was there some historical event that could be a [candidate for causing it][^foot2]? As I gently puffed on my bubble-pipe, I pondered [the possibilities][6]. First I thought of immigration – maybe an influx of people with a preferential set of traditional names could skew the stats? But that would presumably take a lot of immigrants, and besides - a short investigation revealed no big influxes into the US around that time.
+Having more reliably established an effect, was there some historical event that could be a candidate for causing it[^foot2]? As I gently puffed on my bubble-pipe, I pondered [the possibilities][6]. First I thought of immigration – maybe an influx of people with a preferential set of traditional names could skew the stats? But that would presumably take a lot of immigrants, and besides - a short investigation revealed no big influxes into the US around that time.
 
 What else could so influence peoples name choices? Then it hit me – the cinema! Wasn’t this around the time that movies began? Perhaps movie-star celebrities were starting to influence peoples choices of baby-names for the first time. The two biggest turning points in the history of film were the first real silent-movie in 1900, and the first ‘talkie’ (movie with sound) in 1927:
 
@@ -49,7 +49,7 @@ Now this doesn’t mean anything on it’s own, it could all be just mere coinci
 
 
 [1]: http://thirdorderscientist.org/homoclinic-orbit/2013/7/16/analyzing-and-bootstrapping-our-way-to-a-better-entropy-estimator-mdash-part-i-analytical
-[2]: CELEBRODISIAC LINK!!!
+[2]: http://www.celebrodisiac.com
 [3]: http://www.census.gov/data.html
 [4]: http://pandas.pydata.org/
 [5]: https://en.wikipedia.org/wiki/1910_United_States_Census
